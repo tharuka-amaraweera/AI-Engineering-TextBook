@@ -32,6 +32,15 @@ function useHashPath() {
   return path;
 }
 
+// Small notebook sign for concepts marked "revise again".
+const NoteIcon = () => (
+  <svg className="note-ico" viewBox="0 0 16 16" aria-hidden="true">
+    <rect x="3.5" y="1.5" width="10" height="13" rx="2" fill="currentColor" />
+    <path d="M1.5 4.5h3.5M1.5 8h3.5M1.5 11.5h3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    <path d="M7.5 5h4M7.5 7.5h2.5" stroke="var(--paper)" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+  </svg>
+);
+
 const readCount = (s, list) => list.filter(c => s.read?.[c.n]).length;
 
 function Progress({ value, max }) {
@@ -102,8 +111,8 @@ function ChapterPage({ ch, s }) {
       <h2 className="sec">In this chapter</h2>
       <ol className="toc">
         {ch.concepts.map(c => (
-          <li key={c.n} className={s.read?.[c.n] ? 'done' : ''}>
-            <a href={`#/c/${c.n}`}><span className="toc-n">{c.n}</span>{c.title}<span className="tick" aria-hidden="true">{s.read?.[c.n] ? '✓' : ''}</span></a>
+          <li key={c.n} className={s.read?.[c.n] ? 'done' : s.revise?.[c.n] ? 'revise' : ''}>
+            <a href={`#/c/${c.n}`}><span className="toc-n">{c.n}</span>{c.title}<span className={'tick' + (s.revise?.[c.n] ? ' again' : '')} aria-hidden="true">{s.read?.[c.n] ? '✓' : s.revise?.[c.n] ? <NoteIcon /> : ''}</span></a>
           </li>
         ))}
       </ol>
@@ -127,6 +136,12 @@ function ConceptPage({ c, s, update }) {
   const V = visuals[c.n];
   const [before, after] = splitForVisual(c.body);
   const done = !!s.read?.[c.n];
+  const again = !!s.revise?.[c.n];
+  // A concept is either understood or marked to revise again, never both.
+  const setMark = (key, other, on) => update(d => {
+    d[key] = d[key] || {};
+    if (on) { d[key][c.n] = true; if (d[other]) delete d[other][c.n]; } else delete d[key][c.n];
+  });
   return (
     <article>
       <p className="crumb"><a href={`#/chapter/${ch.n}`}>Chapter {ch.n} · {ch.title}</a></p>
@@ -140,10 +155,16 @@ function ConceptPage({ c, s, update }) {
       )}
       {after && <div className="md"><Md>{after}</Md></div>}
       <Notes id={'c' + c.n} s={s} update={update} />
-      <button type="button" className={'btn mark' + (done ? ' done' : '')} aria-pressed={done}
-        onClick={() => update(d => { d.read = d.read || {}; if (done) delete d.read[c.n]; else d.read[c.n] = true; })}>
-        {done ? '✓ Understood (click to undo)' : 'Mark as understood'}
-      </button>
+      <div className="row">
+        <button type="button" className={'btn mark' + (done ? ' done' : '')} aria-pressed={done}
+          onClick={() => setMark('read', 'revise', !done)}>
+          {done ? '✓ Understood (click to undo)' : 'Mark as understood'}
+        </button>
+        <button type="button" className={'btn mark' + (again ? ' on-warn' : '')} aria-pressed={again}
+          onClick={() => setMark('revise', 'read', !again)}>
+          {again ? <span className="with-ico"><NoteIcon />Revise again (click to undo)</span> : 'Revise again'}
+        </button>
+      </div>
     </article>
   );
 }
@@ -282,8 +303,8 @@ function Sidebar({ s, cur, theme, toggleTheme }) {
                   <ul className="sub">
                     {ch.concepts.map(c => (
                       <li key={c.n}>
-                        <a className={(cur.path === `/c/${c.n}` ? 'here ' : '') + (s.read?.[c.n] ? 'done' : '')} href={`#/c/${c.n}`}>
-                          <span className="toc-n">{s.read?.[c.n] ? '✓' : c.n}</span>{c.title}
+                        <a className={(cur.path === `/c/${c.n}` ? 'here ' : '') + (s.read?.[c.n] ? 'done' : s.revise?.[c.n] ? 'revise' : '')} href={`#/c/${c.n}`}>
+                          <span className="toc-n">{s.read?.[c.n] ? '✓' : s.revise?.[c.n] ? <NoteIcon /> : c.n}</span>{c.title}
                         </a>
                       </li>
                     ))}
