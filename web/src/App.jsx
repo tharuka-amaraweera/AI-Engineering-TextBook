@@ -2,24 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Md from './Markdown.jsx';
 import { chapters, concepts, glossary, pages, readme } from './content.js';
 import { visuals } from './visuals/index.js';
-
-const KEY = 'ai-workbook-v1';
-
-function loadState() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
-}
-
-// Progress, notes and theme live in the browser's local storage.
-function useStore() {
-  const [state, setState] = useState(loadState);
-  const update = fn => setState(prev => {
-    const next = JSON.parse(JSON.stringify(prev));
-    fn(next);
-    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* storage unavailable: keep in memory */ }
-    return next;
-  });
-  return [state, update];
-}
+import { useStore } from './sync.js';
 
 function useHashPath() {
   const read = () => decodeURI(location.hash.slice(1)) || '/';
@@ -271,7 +254,48 @@ function GlossaryPage() {
 
 /* ---------- shell ---------- */
 
-function Sidebar({ s, cur, theme, toggleTheme }) {
+// Settings for syncing notes and progress to a secret GitHub Gist.
+function SyncPanel({ sync }) {
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState('');
+  const { status, connected } = sync;
+  const time = status.at ? new Date(status.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  const short = !connected ? 'off' : status.kind === 'error' ? 'problem' : status.kind === 'busy' ? 'syncing…' : 'on';
+  return (
+    <div className="sync">
+      <button type="button" className={'btn theme' + (status.kind === 'error' ? ' on-warn' : '')} aria-expanded={open} onClick={() => setOpen(v => !v)}>
+        Notes sync: {short}
+      </button>
+      {open && (
+        <div className="sync-box">
+          {!connected ? (
+            <form onSubmit={e => { e.preventDefault(); if (token.trim()) { sync.connect(token); setToken(''); } }}>
+              <p>Keep your notes and progress in a secret Gist in your GitHub account, so every browser shows the same.</p>
+              <label htmlFor="sync-token">GitHub token (Gists permission only)</label>
+              <input className="field" id="sync-token" type="password" autoComplete="off" value={token} onChange={e => setToken(e.target.value)} placeholder="Paste token" />
+              <button type="submit" className="btn primary" disabled={!token.trim()}>Connect</button>
+              <p className="muted">The token is saved only in this browser.</p>
+            </form>
+          ) : (
+            <>
+              <p role="status">
+                {status.kind === 'busy' ? 'Syncing…' : status.kind === 'error' ? status.msg : status.kind === 'ok' ? `Synced at ${time}.` : 'Connected.'}
+              </p>
+              <div className="row">
+                <button type="button" className="btn" onClick={sync.now}>Sync now</button>
+                <button type="button" className="btn" onClick={sync.disconnect}>Disconnect</button>
+              </div>
+              {sync.gistId && <a href={`https://gist.github.com/${sync.gistId}`} target="_blank" rel="noreferrer">Open my notes Gist</a>}
+              <p className="muted">Disconnect removes the token from this browser. Your notes stay here and in the Gist.</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sidebar({ s, cur, theme, toggleTheme, sync }) {
   const [q, setQ] = useState('');
   const hits = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -319,6 +343,7 @@ function Sidebar({ s, cur, theme, toggleTheme }) {
           <li><a className={'nav-ch' + (cur?.path === '/glossary' ? ' here' : '')} href="#/glossary"><span className="toc-n">A</span>Glossary</a></li>
         </ul>
       )}
+      <SyncPanel sync={sync} />
       <button type="button" className="btn theme" onClick={toggleTheme}>{theme === 'dark' ? 'Switch to light' : 'Switch to dark'}</button>
     </nav>
   );
@@ -326,7 +351,7 @@ function Sidebar({ s, cur, theme, toggleTheme }) {
 
 export default function App() {
   const path = useHashPath();
-  const [s, update] = useStore();
+  const [s, update, sync] = useStore();
   const [menu, setMenu] = useState(false);
 
   const systemDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
@@ -369,7 +394,7 @@ export default function App() {
         <button type="button" className="btn" onClick={() => setMenu(v => !v)} aria-expanded={menu}>{menu ? 'Close' : 'Contents'}</button>
         <a href="#/"><b>AI Engineering</b></a>
       </header>
-      <Sidebar s={s} cur={cur} theme={theme} toggleTheme={() => update(d => { d.theme = theme === 'dark' ? 'light' : 'dark'; })} />
+      <Sidebar s={s} cur={cur} theme={theme} sync={sync} toggleTheme={() => update(d => { d.theme = theme === 'dark' ? 'light' : 'dark'; })} />
       <main>
         {page}
         <nav className="pager" aria-label="Previous and next page">

@@ -84,6 +84,15 @@ article, .pager { max-width: 800px; margin: 0 auto; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .btn small { font-size: 11.5px; color: var(--ink-2); font-weight: 400; }
 .btn.theme { align-self: stretch; align-items: center; font-size: 13px; }
+.sync { display: grid; gap: 8px; }
+.sync-box { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); font-size: 13px; }
+.sync-box form { display: grid; gap: 8px; }
+.sync-box p { margin: 0; }
+.sync-box label { font-weight: 600; }
+.sync-box .muted { font-size: 12px; }
+.sync-box a { color: var(--accent); }
+.sync-box .field { background: var(--paper); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
 .btn.mark { margin-top: 18px; font-weight: 600; border-color: var(--accent); color: var(--accent); }
 .btn.mark.done, .btn.on-good { background: var(--good-soft); border-color: var(--good); color: var(--good); }
 .btn.on-warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
