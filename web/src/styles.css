@@ -93,7 +93,8 @@ article, .pager { max-width: 800px; margin: 0 auto; }
 .sync-box a { color: var(--accent); }
 .sync-box .field { background: var(--paper); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
-.btn.mark { margin-top: 18px; font-weight: 600; border-color: var(--accent); color: var(--accent); }
+/* background, padding and radius are repeated here because the highlighter class .mark (pictures) would override them */
+.btn.mark { margin-top: 18px; font-weight: 600; border-color: var(--accent); color: var(--accent); background: var(--paper); padding: 8px 14px; border-radius: 8px; }
 .btn.mark.done, .btn.on-good { background: var(--good-soft); border-color: var(--good); color: var(--good); }
 .btn.on-warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -176,6 +177,44 @@ h2.sec { font-family: var(--f-read); font-size: 22px; margin: 28px 0 10px; }
 .gloss dt { font-weight: 700; }
 .gloss dd { margin: 0; font-family: var(--f-read); font-size: 16.5px; }
 .pill { font-family: var(--f-mono); font-size: 11.5px; text-decoration: none; background: var(--accent-soft); padding: 1px 7px; border-radius: 999px; margin-left: 4px; white-space: nowrap; }
+
+/* example story: a button on the concept page opens the story in a dialog */
+.btn.story-open { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+.btn.story-open:hover { border-color: var(--hl-ink); }
+:root:has(dialog.story[open]) { overflow: hidden; }
+dialog.story { width: min(760px, calc(100vw - 32px)); max-width: none; max-height: min(88vh, 900px); padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); overflow: hidden; }
+dialog.story[open] { display: flex; flex-direction: column; }
+dialog.story::backdrop { background: rgba(10, 14, 24, .58); }
+.story-head { flex: none; display: flex; gap: 14px; justify-content: space-between; align-items: flex-start; padding: 18px 22px 14px; border-bottom: 1px solid var(--line); }
+.story-head h2 { font-family: var(--f-read); font-size: clamp(21px, 3vw, 26px); line-height: 1.2; margin: 6px 0 0; text-wrap: balance; }
+.story-head .btn { flex: none; }
+.story-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 22px 24px; display: grid; gap: 18px; align-content: start; }
+.story-body > * { min-width: 0; }
+.story-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13.5px; }
+.story-kind { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.story-kind.k-build { color: var(--good); background: var(--good-soft); }
+.story-kind.k-explains { color: var(--accent); background: var(--accent-soft); }
+.story-kind.k-other { color: var(--warn); background: var(--warn-soft); }
+.story-part { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 16px; align-items: start; }
+.story-part h3 { margin: 5px 0 0; font-family: var(--f-mono); font-weight: 600; font-size: 11.5px; line-height: 1.5; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
+.story-part.p-idea h3 { color: var(--accent); }
+.story-part.p-do h3 { color: var(--good); }
+.story-part.p-miss h3 { color: var(--bad); }
+.story .md { font-size: 16.5px; line-height: 1.6; }
+.story .md > :last-child { margin-bottom: 0; }
+.story .md code { font-variant-ligatures: none; }
+.story-part.p-miss .md { background: var(--bad-soft); padding: 10px 14px; border-radius: 8px; }
+.story-part.p-miss .md code { background: var(--paper); }
+.story-project { border-top: 1px solid var(--line); padding-top: 14px; }
+.story-project summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent); }
+.story-project .md { margin-top: 12px; font-size: 16px; }
+.story-project .md pre code { font-size: 12.5px; }
+@media (max-width: 640px) {
+  dialog.story { max-height: 92vh; }
+  .story-head { padding: 14px 16px 12px; }
+  .story-body { padding: 14px 16px 20px; }
+  .story-part { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
 
 /* ---------- pictures ---------- */
 .viz { margin: 26px 0; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; font-family: var(--f-ui); font-size: 14.5px; display: grid; gap: 14px; min-width: 0; }

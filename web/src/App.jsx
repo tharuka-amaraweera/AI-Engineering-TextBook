@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Md from './Markdown.jsx';
-import { chapters, concepts, glossary, pages, readme } from './content.js';
+import { chapters, concepts, glossary, pages, readme, stories } from './content.js';
 import { visuals } from './visuals/index.js';
 import { useStore } from './sync.js';
 
@@ -114,9 +114,53 @@ function splitForVisual(body) {
   return second > 0 ? [body.slice(0, second), body.slice(second)] : [body, ''];
 }
 
+const STORY_PART = { 'What happens': 'p-happens', 'The idea': 'p-idea', 'What you do': 'p-do', 'If you miss it': 'p-miss' };
+const STORY_KIND = { 'You build it': 'k-build', 'Explains what you see': 'k-explains', 'Different example': 'k-other' };
+
+// The example story of one concept, shown in a dialog on top of the page.
+// A native modal dialog keeps the focus inside, closes on Esc and gives the focus back to the button.
+function StoryDialog({ c, story, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => { if (!ref.current.open) ref.current.showModal(); }, []);
+  const close = () => ref.current.close();
+  return (
+    <dialog ref={ref} className="story" aria-labelledby="story-title" onClose={onClose}
+      onClick={e => { if (e.target === ref.current) close(); }}>
+      <header className="story-head">
+        <div>
+          <p className="eyebrow">Example story · Concept {c.n}</p>
+          <h2 id="story-title">{story.title}</h2>
+        </div>
+        <button type="button" className="btn" onClick={close}>Close</button>
+      </header>
+      <div className="story-body">
+        <p className="story-meta">
+          <span className={'story-kind ' + (STORY_KIND[story.kind] || 'k-build')}>{story.kind}</span>
+          <span className="muted">Phase {story.phase} of the build: {story.phaseTitle}</span>
+        </p>
+        {story.parts.map(p => (
+          <section key={p.label} className={'story-part ' + (STORY_PART[p.label] || '')}>
+            <h3>{p.label}</h3>
+            <div className="md"><Md>{p.body}</Md></div>
+          </section>
+        ))}
+        {stories.project && (
+          <details className="story-project">
+            <summary>About the project in these stories</summary>
+            <div className="md"><Md>{stories.project}</Md></div>
+          </details>
+        )}
+      </div>
+    </dialog>
+  );
+}
+
 function ConceptPage({ c, s, update }) {
   const ch = chapters[c.chapter - 1];
   const V = visuals[c.n];
+  const story = stories.byConcept[c.n];
+  const [showStory, setShowStory] = useState(false);
+  const storyBtn = useRef(null);
   const [before, after] = splitForVisual(c.body);
   const done = !!s.read?.[c.n];
   const again = !!s.revise?.[c.n];
@@ -139,6 +183,11 @@ function ConceptPage({ c, s, update }) {
       {after && <div className="md"><Md>{after}</Md></div>}
       <Notes id={'c' + c.n} s={s} update={update} />
       <div className="row">
+        {story && (
+          <button type="button" ref={storyBtn} className="btn mark story-open" aria-haspopup="dialog" onClick={() => setShowStory(true)}>
+            Example story
+          </button>
+        )}
         <button type="button" className={'btn mark' + (done ? ' done' : '')} aria-pressed={done}
           onClick={() => setMark('read', 'revise', !done)}>
           {done ? '✓ Understood (click to undo)' : 'Mark as understood'}
@@ -148,6 +197,7 @@ function ConceptPage({ c, s, update }) {
           {again ? <span className="with-ico"><NoteIcon />Revise again (click to undo)</span> : 'Revise again'}
         </button>
       </div>
+      {story && showStory && <StoryDialog c={c} story={story} onClose={() => { setShowStory(false); storyBtn.current?.focus(); }} />}
     </article>
   );
 }
@@ -367,6 +417,7 @@ export default function App() {
   useEffect(() => {
     const onKey = e => {
       if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) return;
+      if (document.querySelector('dialog[open]')) return; // do not turn the page behind an open example story
       if (e.key === 'ArrowRight' && next) location.hash = next.path;
       if (e.key === 'ArrowLeft' && prev) location.hash = prev.path;
     };
