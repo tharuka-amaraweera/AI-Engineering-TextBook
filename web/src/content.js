@@ -15,10 +15,29 @@ const norm = s => s.replace(/\r\n/g, '\n');
 const clean = s => s.trim().replace(/\n-{3,}\s*$/, '').replace(/^-{3,}\s*\n/, '').trim();
 const listItems = md => [...(md || '').matchAll(/^\d+\.\s+(.+)$/gm)].map(m => m[1]);
 
+// A quiz question is a numbered line. Its answer options are the indented lines
+// "- A. text" below it. In the answers list, "**B.** text" names the correct
+// option and gives the explanation. A question without options still works as a
+// plain question with a hidden answer.
 function parseQuiz(md) {
-  if (!md) return { q: [], a: [], raw: '' };
+  if (!md) return { q: [], a: [], opts: [], correct: [], raw: '' };
   const [before, after = ''] = md.split('<details>');
-  return { q: listItems(before), a: listItems(after), raw: md };
+  const q = [];
+  const opts = [];
+  for (const line of before.split('\n')) {
+    const item = line.match(/^\d+\.\s+(.+)$/);
+    if (item) { q.push(item[1]); opts.push([]); continue; }
+    const opt = line.match(/^\s+-\s+([A-D])\.\s+(.+)$/);
+    if (opt && opts.length) opts[opts.length - 1].push({ key: opt[1], text: opt[2] });
+  }
+  const a = [];
+  const correct = [];
+  for (const item of listItems(after)) {
+    const m = item.match(/^\*\*([A-D])\.\*\*\s*(.*)$/);
+    correct.push(m ? m[1] : null);
+    a.push(m ? m[2] : item);
+  }
+  return { q, a, opts, correct, raw: md };
 }
 
 function parseChapter(src, idx) {
@@ -33,7 +52,7 @@ function parseChapter(src, idx) {
     extras: [],
     exercises: [],
     exercisesRaw: '',
-    quiz: { q: [], a: [], raw: '' },
+    quiz: { q: [], a: [], opts: [], correct: [], raw: '' },
   };
   for (const part of parts.slice(1)) {
     const nl = part.indexOf('\n');

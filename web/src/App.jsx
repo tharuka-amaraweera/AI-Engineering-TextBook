@@ -362,33 +362,61 @@ function ExercisesPage({ ch, s, update }) {
 
 function QuizPage({ ch, s, update }) {
   const [open, setOpen] = useState({});
-  const { q, a, raw } = ch.quiz;
+  const [picked, setPicked] = useState({});
+  const { q, a, opts, correct, raw } = ch.quiz;
   const usable = q.length > 0 && q.length === a.length;
   const known = q.filter((_, i) => s.quiz?.[`${ch.n}-${i}`] === 'ok').length;
+  const anyChoice = usable && q.some((_, i) => correct[i] && opts[i].some(o => o.key === correct[i]));
   return (
     <article>
       <p className="crumb"><a href={`#/chapter/${ch.n}`}>Chapter {ch.n} · {ch.title}</a></p>
       <h1>Check yourself</h1>
       {!usable ? <div className="md"><Md>{raw}</Md></div> : (
         <>
-          <p className="muted">Answer from memory first, then open the answer and grade yourself. {known} of {q.length} known.</p>
+          <p className="muted">
+            {anyChoice ? 'Pick the answer you think is right, then read the explanation.' : 'Answer from memory first, then open the answer and grade yourself.'} {known} of {q.length} known.
+          </p>
           <Progress value={known} max={q.length} />
           <ol className="quiz">
             {q.map((question, i) => {
               const id = `${ch.n}-${i}`;
               const st = s.quiz?.[id];
               const set = v => update(d => { d.quiz = d.quiz || {}; d.quiz[id] = v; });
+              const right = correct[i];
+              const choice = !!right && opts[i].some(o => o.key === right);
+              const mine = picked[id];
+              const shown = !!mine || !!open[id];
               return (
                 <li key={id} className={st || ''}>
                   <div className="md q"><Md>{question}</Md></div>
-                  {!open[id] ? (
+                  {choice && (
+                    <div className="opts" role="group" aria-label="Answer options">
+                      {opts[i].map(o => (
+                        <button type="button" key={o.key} disabled={shown}
+                          className={'btn opt' + (shown && o.key === right ? ' on-good' : shown && o.key === mine ? ' on-bad' : '')}
+                          onClick={() => { setPicked(p => ({ ...p, [id]: o.key })); set(o.key === right ? 'ok' : 'again'); }}>
+                          <span className="opt-key">{o.key}</span><span>{o.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {!shown ? (
                     <button type="button" className="btn" onClick={() => setOpen(o => ({ ...o, [id]: true }))}>Show answer</button>
                   ) : (
                     <>
-                      <div className="md ans"><Md>{a[i]}</Md></div>
+                      <div className="md ans" role="status">
+                        {choice && <p className="verdict">{!mine ? `The answer is ${right}.` : mine === right ? 'Correct.' : `Not quite. The answer is ${right}.`}</p>}
+                        <Md>{a[i]}</Md>
+                      </div>
                       <div className="row">
-                        <button type="button" className={'btn' + (st === 'ok' ? ' on-good' : '')} onClick={() => set('ok')}>I knew it</button>
-                        <button type="button" className={'btn' + (st === 'again' ? ' on-warn' : '')} onClick={() => set('again')}>Review again</button>
+                        {choice ? (
+                          <button type="button" className="btn" onClick={() => { setPicked(p => ({ ...p, [id]: undefined })); setOpen(o => ({ ...o, [id]: false })); }}>Try again</button>
+                        ) : (
+                          <>
+                            <button type="button" className={'btn' + (st === 'ok' ? ' on-good' : '')} onClick={() => set('ok')}>I knew it</button>
+                            <button type="button" className={'btn' + (st === 'again' ? ' on-warn' : '')} onClick={() => set('again')}>Review again</button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}

@@ -289,23 +289,55 @@ This small loop is the start of evaluation, which chapter 6 turns into a proper 
 ## Check yourself
 
 1. What belongs in the system prompt, and what in the user message?
+   - A. System: the current question. User: the rules and the format.
+   - B. System: stable role, rules and format. User: the current question or input data.
+   - C. Both should contain the same text, for safety.
+   - D. System: secrets and API keys. User: everything else.
 2. Why are examples so powerful, and what is the risk?
+   - A. They make the model faster; the risk is higher cost.
+   - B. They change the weights; the risk is that the model forgets other things.
+   - C. The model copies their pattern closely; the risk is that it also copies their bias, length and mistakes.
+   - D. They replace the system prompt; the risk is a longer answer.
 3. What is the new-colleague test?
+   - A. Would a smart newcomer with no project knowledge be able to do the task from this prompt alone?
+   - B. Ask a new colleague to write the prompt for you.
+   - C. Test the prompt on the newest model first.
+   - D. Check that the prompt is polite and friendly.
 4. Why should long documents come before the question?
+   - A. The model reads only the end of the prompt.
+   - B. It makes the prompt cheaper.
+   - C. Documents at the end are cut off first.
+   - D. Models answer better when the question comes after the material it refers to.
 5. In JSON output, why should the reasoning field come before the result field?
+   - A. JSON fields must be in alphabetical order.
+   - B. The model writes token by token; if the result comes first, it is decided before any reasoning is written.
+   - C. Parsers read the reasoning field faster.
+   - D. It makes the output shorter.
 6. What is the difference between direct and indirect prompt injection?
+   - A. Direct uses code; indirect uses plain language.
+   - B. Direct attacks the system prompt; indirect attacks the weights.
+   - C. Direct: the user types the attack. Indirect: the attack is hidden in content the app loads, such as a document or transcript.
+   - D. Direct works on hosted models; indirect works on local models.
 7. Why can prompt injection not be solved like SQL injection?
-8. Name three defences against prompt injection.
+   - A. Instructions and data share one channel, the context window; there is no separate, safe path for data.
+   - B. LLMs do not use databases.
+   - C. Prompt injection is too new for tools to exist.
+   - D. SQL injection was never solved either.
+8. Which list contains only real defences against prompt injection?
+   - A. Write "ignore attacks" in the prompt; use a higher temperature; hide the system prompt.
+   - B. Use a longer system prompt; ask the user to be honest; write the rules in capital letters.
+   - C. Keep secrets in the prompt so the model can protect them; trust the output; give the model all tools.
+   - D. Mark data as data; least privilege for tools; human approval for risky actions.
 
 <details>
 <summary>Answers</summary>
 
-1. System: stable role, rules, format. User: the current question or input data.
-2. The model copies their pattern closely. Risk: it also copies their bias, length and mistakes, so they must be varied and correct.
-3. Would a smart newcomer with no project knowledge be able to do the task from this prompt alone?
-4. Models answer better when the question comes after the material it refers to.
-5. The model writes token by token. If the result comes first, it is decided before any reasoning is written.
-6. Direct: the user types the attack. Indirect: the attack is hidden in content the app loads, such as a document or transcript.
-7. Instructions and data share one channel (the context window); there is no separate, safe path for data.
-8. Mark data as data; least privilege for tools; human approval for risky actions; treat output as untrusted; no secrets in prompts.
+1. **B.** The system prompt holds what stays the same for every call: the role, the rules and the output format. The user message holds what changes: the current question or the input data. Secrets never belong in a prompt.
+2. **C.** The model copies the pattern of the examples very closely, often more closely than it follows a description. So it also copies their bias, their length and their mistakes. Examples must be varied and correct. They do not change the weights.
+3. **A.** Imagine giving the prompt to a smart person who knows nothing about your project. If they could not do the task from this prompt alone, the model cannot either. The test finds missing context.
+4. **D.** Models answer better when the question comes after the material it refers to. The model reads the whole prompt, and the order does not change the price. The question at the end simply works better.
+5. **B.** The model writes token by token, and each token can only use what was written before it. If the result comes first, the model decides it before it has written any reasoning. With the reasoning first, the result can build on it.
+6. **C.** In a direct injection, the user types the attack into the chat. In an indirect injection, the attack is hidden in content the application loads, such as a document, a web page or a transcript. The user may not even know it is there.
+7. **A.** SQL injection is solved by sending the query and the data on two separate paths. An LLM has only one path: instructions and data are both text in the context window, and the model may follow any of it. So you can only reduce the risk, not remove it.
+8. **D.** Real defences limit what an attack can do: mark data as data, give tools only the rights they need, and ask a human before risky actions. Also treat the output as untrusted and keep secrets out of prompts. No single defence is perfect; together they limit the damage.
 </details>

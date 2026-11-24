@@ -389,25 +389,61 @@ You pay per token and output is the expensive, slow part. Estimate cost per call
 ## Check yourself
 
 1. What is the difference between training and inference?
+   - A. Training runs the model for users; inference changes the weights.
+   - B. Training changes the weights using examples; inference uses the fixed weights to produce output.
+   - C. Training happens on your laptop; inference happens only in the cloud.
+   - D. There is no difference; both words mean running the model.
 2. Why does an LLM not "remember" your previous conversation by itself?
+   - A. Its memory is deleted every night.
+   - B. It remembers only the last three messages.
+   - C. It is stateless: it only sees the context window of the current call.
+   - D. Providers block memory for privacy reasons.
 3. Roughly how many tokens are 3,000 English words?
-4. Name four things that count towards the context window.
+   - A. About 750 tokens.
+   - B. About 2,250 tokens.
+   - C. About 3,000 tokens.
+   - D. About 4,000 tokens.
+4. Which list contains only things that count towards the context window?
+   - A. System prompt, conversation history, added documents or tool results, and the answer being written.
+   - B. The model's weights, the training data, the system prompt and the answer.
+   - C. Only the latest user message and the answer.
+   - D. The system prompt, your API key, the temperature setting and the history.
 5. What is a base model, and how is it different from a chat model?
-6. What does attention do, in one sentence?
+   - A. A base model is smaller; a chat model is the larger version.
+   - B. A base model only continues text; a chat model was fine-tuned on conversations to follow instructions and answer.
+   - C. A base model answers questions; a chat model only completes sentences.
+   - D. A base model runs locally; a chat model runs in the cloud.
+6. What does attention do?
+   - A. It decides how long the answer is.
+   - B. It removes unimportant tokens from the context window.
+   - C. It lets each token take in information from the other tokens that matter for its meaning.
+   - D. It stores the conversation between calls.
 7. Which temperature would you use to extract action items as JSON, and why?
-8. Give three ways to reduce hallucinations.
+   - A. 0 to 0.3, because you want the same, exact result each time.
+   - B. Around 1, because JSON needs creativity.
+   - C. Above 1.5, so the model finds more action items.
+   - D. Temperature does not matter for JSON.
+8. Which list contains three ways to reduce hallucinations?
+   - A. Raise the temperature; remove the documents; forbid "I don't know".
+   - B. Put the facts in the context; allow "I don't know"; ask for quotes.
+   - C. Use a longer system prompt; use a smaller model; ask the question twice.
+   - D. Hide the sources; increase max tokens; use a base model.
 9. Why is output length the main driver of latency?
+   - A. Long outputs need a bigger context window.
+   - B. The provider slows down long answers on purpose.
+   - C. Output tokens are checked by a second model.
+   - D. Output is produced one token at a time; input is processed much faster.
 
 <details>
 <summary>Answers</summary>
 
-1. Training changes the weights using examples; inference uses the fixed weights to produce output.
-2. It is stateless; it only sees the context window of the current call. The application must send the history again.
-3. About 4,000 tokens (1 token ≈ ¾ word).
-4. System prompt, conversation history, added documents or tool results, and the answer being written (also tool definitions).
-5. A base model only continues text; a chat model was fine-tuned on conversations to follow instructions and answer.
-6. It lets each token take in information from the other tokens that matter for its meaning.
-7. 0 to 0.3, because you want the same, exact result each time, not variety.
-8. Put the facts in the context; allow "I don't know"; ask for quotes; lower temperature; validate in code; use a stronger model.
-9. Output is produced one token at a time, so each extra token adds time; input is processed much faster.
+1. **B.** Training is the learning phase: the weights change as the model sees examples. Inference is the using phase: the weights stay fixed and the model only produces output. When you call a model through an API, you are doing inference.
+2. **C.** The model keeps nothing between calls. It only sees what is in the context window of the current call. A chat seems to have memory only because the application sends the history again every time.
+3. **D.** One token is about ¾ of a word, so a text has more tokens than words. 3,000 ÷ 0.75 is about 4,000 tokens.
+4. **A.** Everything the model reads or writes in one call counts: the system prompt, the history, added documents or tool results, tool definitions, and the answer being written. Weights, training data, API keys and settings such as temperature are not text in the context window.
+5. **B.** A base model comes out of pre-training and can only continue a text. A chat model is a base model that was fine-tuned on conversations, so it follows instructions and answers questions. The difference is the extra training, not the size or the place where it runs.
+6. **C.** Attention lets each token look at the other tokens and take in information from the ones that matter for its meaning. For example, in "the bank of the river", the token "bank" can use "river" to get the right meaning. It does not delete tokens and it does not store anything.
+7. **A.** Extraction has one right result, so you want the same, exact output each time, not variety. A low temperature (0 to 0.3) makes the model pick the most likely tokens. A high temperature adds randomness, which can also break the JSON.
+8. **B.** The model invents less when the facts are in front of it, when it is allowed to say "I don't know", and when it must quote its source. A lower temperature, checks in code and a stronger model also help.
+9. **D.** The model writes the answer one token after another, so each extra output token adds time. The input is processed much faster. To make a call faster, ask for a shorter answer first.
 </details>

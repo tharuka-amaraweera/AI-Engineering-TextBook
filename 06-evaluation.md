@@ -242,26 +242,62 @@ Automate your evals, assert on a score threshold, track it over time, and rerun 
 
 ## Check yourself
 
-1. Give three reasons why LLM testing differs from normal unit testing.
+1. Which list gives real reasons why LLM testing differs from normal unit testing?
+   - A. LLM tests are faster, cheaper and always pass.
+   - B. Output varies between runs; many different answers are correct; failures are silent.
+   - C. LLMs cannot be tested at all.
+   - D. Unit tests need a GPU; LLM tests do not.
 2. What is a golden answer?
+   - A. The best answer the model ever gave.
+   - B. An answer with a score of 10 out of 10.
+   - C. The reference answer a test case's output is judged against.
+   - D. The first answer in the log.
 3. Which kinds of cases must be in an eval set besides normal questions?
+   - A. Only easy cases, to keep the score high.
+   - B. Random questions from the internet.
+   - C. Only cases the system already passes.
+   - D. "Not found" cases, hard and edge cases, and every real failure you meet.
 4. Why prefer code checks to an LLM judge?
+   - A. They are free, instant, repeatable and cannot be wrong.
+   - B. They understand meaning better.
+   - C. They need no test cases.
+   - D. A judge is not allowed in CI.
 5. Why is PASS/FAIL better than a 1–10 score for a judge?
+   - A. Numbers cost more tokens.
+   - B. Models are inconsistent on fine scales but reliable on a clear yes/no rule.
+   - C. PASS/FAIL is easier to store.
+   - D. A 1–10 score is always too high.
 6. How do you know you can trust your judge?
+   - A. Use the most expensive model as the judge.
+   - B. Ask the judge whether it is sure.
+   - C. Grade a sample yourself and check that the judge agrees with you on almost all cases.
+   - D. Run it twice and take the average.
 7. What is recall@k, and why is it the most important retrieval metric?
+   - A. The share of answers that are correct; it is the final goal.
+   - B. The speed of the search for k chunks; slow search blocks users.
+   - C. The number of chunks in the database; more is better.
+   - D. The share of relevant chunks found in the top k; if the right chunk is missing, the answer cannot be right.
 8. Retrieval is good but the answer is wrong. Where do you look?
+   - A. At the embedding model.
+   - B. At the generation step: prompt, model, or too many noisy passages.
+   - C. At the chunk size.
+   - D. At the vector index.
 9. Why must you rerun evals when the provider updates a model?
+   - A. The old results are deleted.
+   - B. The price changes.
+   - C. A new model version changes your system's behaviour even though your code did not change.
+   - D. The eval set expires.
 
 <details>
 <summary>Answers</summary>
 
-1. Output varies between runs; many different answers are correct; failures are silent; changes have side effects; the model can change under you.
-2. The reference answer a test case's output is judged against.
-3. "Not found" cases, hard and edge cases, and every real failure you meet.
-4. They are free, instant, repeatable and cannot be wrong.
-5. Models are inconsistent on fine scales but reliable on a clear yes/no rule.
-6. Grade a sample yourself and check that the judge agrees with you on almost all cases.
-7. The share of relevant chunks found in the top k. If the right chunk is missing, the answer cannot be right.
-8. The generation step: prompt, model, or too many noisy passages.
-9. A new model version changes your system's behaviour even though your code did not change.
+1. **B.** A unit test expects one exact result. An LLM gives different output on each run, many different answers can be correct, and a bad answer raises no error. Two more reasons: a change in one place has side effects elsewhere, and the provider can change the model under you.
+2. **C.** A golden answer is the reference answer for a test case. It is written or checked by a person, and the system's output is compared with it.
+3. **D.** An eval set must show where the system breaks. So it needs questions whose answer is not in the data ("not found"), hard and unusual cases, and every real failure you meet, so the same failure cannot come back unnoticed.
+4. **A.** A code check, such as "is this valid JSON?" or "is the date in the future?", costs nothing, runs at once and gives the same result every time. An LLM judge costs money and can make mistakes. Use a judge only for what code cannot check, such as meaning.
+5. **B.** Nobody, human or model, can say reliably whether an answer is a 6 or a 7, so the scores jump around between runs. A clear yes/no rule gives the same verdict each time.
+6. **C.** A judge is also an LLM, so it must be tested too. Grade a sample of cases yourself, then compare. If the judge agrees with you on almost all of them, you can trust it on the rest.
+7. **D.** recall@k asks: of the chunks that are relevant, how many are in the top k results? It matters most because the model can only use what was retrieved. If the right chunk is missing, no prompt can make the answer right.
+8. **B.** If the right chunks were retrieved, the search part did its job. The fault is in the generation step: the prompt, the model, or too many passages that are not relevant and distract the model.
+9. **C.** The model is part of your system. A new version can answer differently, better in some places and worse in others, although you changed no code. Only your own evals show what changed for you.
 </details>

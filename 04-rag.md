@@ -351,25 +351,61 @@ Long context for small data, RAG for finding passages in large data, SQL for cou
 ## Check yourself
 
 1. What does an embedding represent?
+   - A. The length of a text.
+   - B. The meaning of a text as a vector of numbers; similar meanings give nearby vectors.
+   - C. A compressed copy of the text that can be unpacked again.
+   - D. The keywords of a text.
 2. Why must documents and questions use the same embedding model?
+   - A. Different models have different prices.
+   - B. It is a licence rule.
+   - C. Vectors from different models live in different spaces and cannot be compared.
+   - D. Only one model can run at a time.
 3. What is HNSW, and what do you trade for its speed?
+   - A. An exact search that checks every vector; you trade speed for accuracy.
+   - B. A compression format for vectors; you trade quality for size.
+   - C. A keyword index; you trade meaning for exact terms.
+   - D. A graph index for approximate nearest-neighbour search; you trade a little accuracy for much more speed.
 4. What goes wrong with chunks that are too small? Too large?
+   - A. Too small: context is lost. Too large: topics mix, the vector is blurry and context window is wasted.
+   - B. Too small: topics mix. Too large: context is lost.
+   - C. Too small: the cost rises. Too large: nothing goes wrong.
+   - D. The size does not matter if the embedding model is good.
 5. Why add a header with date and speaker to each chunk?
+   - A. To make the chunks longer.
+   - B. Because the database requires it.
+   - C. So the chunk is understandable alone and the vector carries date, person and topic.
+   - D. To hide who said what.
 6. A RAG answer is wrong. Which three questions do you ask, in order?
+   - A. Is the model too small? Is the temperature too high? Is the prompt too long?
+   - B. Was the right chunk stored? Was it retrieved? Did the model use it correctly?
+   - C. Did the model use it correctly? Was it retrieved? Was it stored?
+   - D. Is the user wrong? Is the question unclear? Is the data old?
 7. Why is hybrid search useful?
+   - A. It is cheaper than vector search.
+   - B. It needs no embedding model.
+   - C. It searches two databases at once.
+   - D. Vector search finds meaning, keyword search finds exact terms such as ticket numbers; together they cover both.
 8. What does a re-ranker do?
+   - A. It rewrites the user's question.
+   - B. It scores each retrieved passage against the question more precisely, so you keep only the best few.
+   - C. It sorts the chunks by date.
+   - D. It creates the embeddings.
 9. Which kind of question can RAG not answer well, and what is the alternative?
+   - A. Questions about one document; use fine-tuning.
+   - B. Questions with exact terms; use a bigger model.
+   - C. Counting, listing and trend questions over all data; use structured extraction and SQL.
+   - D. Short questions; use a longer prompt.
 
 <details>
 <summary>Answers</summary>
 
-1. The meaning of a text as a vector of numbers; similar meanings give nearby vectors.
-2. Vectors from different models live in different spaces and cannot be compared.
-3. A graph index for approximate nearest-neighbour search; you trade a little accuracy for much more speed.
-4. Too small: context is lost. Too large: topics mix, the vector is blurry and context window is wasted.
-5. So the chunk is understandable alone and the vector carries date, person and topic.
-6. Was the right chunk stored? Was it retrieved? Did the model use it correctly?
-7. Vector search finds meaning, keyword search finds exact terms such as ticket numbers; together they cover both.
-8. It scores each retrieved passage against the question more precisely, so you keep only the best few.
-9. Counting, listing and trend questions over all data. Use structured extraction and SQL.
+1. **B.** An embedding is a list of numbers (a vector) that stands for the meaning of a text. Texts with similar meaning get vectors that are close together, even when they use different words. You cannot turn the vector back into the text.
+2. **C.** Each embedding model has its own space: the numbers mean something only inside that model. A question vector from one model and a document vector from another cannot be compared, so the search returns nonsense.
+3. **D.** HNSW is a graph index. It finds vectors that are very probably the nearest ones without checking every vector. You give up a little accuracy and get much more speed, which matters when there are millions of vectors.
+4. **A.** A very small chunk has lost the sentences around it, so it is hard to understand alone. A very large chunk mixes several topics, so its vector is blurry and matches nothing well. It also fills the context window with text that is not needed.
+5. **C.** A chunk is read alone, without the rest of the document. A header with date, speaker and topic makes it understandable by itself. The header is also part of the embedded text, so a search for a person or a date can find the chunk.
+6. **B.** Follow the data in the order it flows: first storage, then retrieval, then generation. If an early step failed, the later steps cannot succeed, so you check the early step first.
+7. **D.** Vector search is good at meaning but weak at exact strings such as ticket numbers, names or error codes. Keyword search is the opposite. Hybrid search runs both and combines the results.
+8. **B.** The first search is fast but rough. A re-ranker then reads the question together with each retrieved passage and gives a more precise score. You keep only the best few passages for the prompt.
+9. **C.** RAG retrieves only a few passages, so it never sees all the data at once. "How many…", "list all…" and "how did it change over time" need every record. Extract the facts into a table once, and answer these questions with SQL.
 </details>

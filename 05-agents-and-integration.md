@@ -257,23 +257,55 @@ Do heavy AI work in background workers: idempotent, with status per step, retrie
 ## Check yourself
 
 1. Complete: agent = ___ + ___ + ___.
+   - A. Model + tools + loop.
+   - B. Prompt + data + answer.
+   - C. Model + memory + database.
+   - D. User + model + API.
 2. What is the difference between a workflow and an agent?
+   - A. A workflow uses a model; an agent does not.
+   - B. In a workflow your code fixes the steps; in an agent the model decides the next step at run time.
+   - C. A workflow is always slower than an agent.
+   - D. An agent never uses tools.
 3. If each step is 90% reliable, how reliable are five steps in a row?
-4. Name three guardrails every agent needs.
+   - A. 90%.
+   - B. About 81%.
+   - C. About 59%.
+   - D. About 45%.
+4. Which list contains only guardrails every agent needs?
+   - A. High temperature, long prompts and many tools.
+   - B. A bigger model, more memory and no logs.
+   - C. Unlimited steps, automatic approval and a hidden trace.
+   - D. A step limit, a cost or token budget, and human approval for changes.
 5. What do you gain and lose with multi-agent systems?
+   - A. Gain: clean, isolated context and parallel work. Lose: many more tokens, detail at each hand-over, easy debugging.
+   - B. Gain: fewer tokens. Lose: speed.
+   - C. Gain: easy debugging. Lose: parallel work.
+   - D. Gain: no need for tools. Lose: accuracy.
 6. What three things can an MCP server offer?
+   - A. Models, weights and tokens.
+   - B. Tools, resources and prompts.
+   - C. Users, roles and permissions.
+   - D. Chunks, vectors and indexes.
 7. Why store the raw transcript and not only the cleaned one?
+   - A. The raw text is smaller.
+   - B. The law requires it.
+   - C. So you can reprocess later with better cleaning, prompts or models, and because cleaning can introduce errors.
+   - D. Models cannot read cleaned text.
 8. Why must the meeting-processing worker be idempotent?
+   - A. To make it faster.
+   - B. To use less memory.
+   - C. Because each message is delivered exactly once.
+   - D. Messages can be delivered more than once, and retries happen; processing twice must not create duplicates.
 
 <details>
 <summary>Answers</summary>
 
-1. Model + tools + loop.
-2. In a workflow your code fixes the steps; in an agent the model decides the next step at run time.
-3. About 59% (0.9⁵).
-4. Step limit, cost or token budget, repeat detection, clear stop condition, human approval for changes, full trace.
-5. Gain: clean, isolated context and parallel work. Lose: many more tokens, detail at each hand-over, easy debugging.
-6. Tools, resources and prompts.
-7. So you can reprocess later with better cleaning, prompts or models, and because cleaning can introduce errors.
-8. Messages can be delivered more than once, and retries happen; processing twice must not create duplicates.
+1. **A.** An agent is a model that can call tools, running in a loop: the model picks an action, your code runs it, the result goes back to the model, and this repeats until the task is done.
+2. **B.** In a workflow, your code decides the steps and their order, and the model fills in each step. In an agent, the model decides the next step while it runs. Workflows are easier to predict; agents are more flexible.
+3. **C.** The chances multiply: 0.9 × 0.9 × 0.9 × 0.9 × 0.9 is about 0.59. A long chain of steps fails much more often than each single step suggests.
+4. **D.** An agent can loop for a long time and take real actions, so it needs limits: a maximum number of steps, a cost or token budget, and human approval before it changes anything. Repeat detection, a clear stop condition and a full trace belong on the list too.
+5. **A.** Each agent has its own clean context and several can work at the same time. The price is many more tokens, detail that gets lost each time one agent hands work to another, and a system that is harder to debug.
+6. **B.** An MCP server can offer tools (functions the model can call), resources (data the application can read) and prompts (ready-made prompt templates).
+7. **C.** The raw transcript is the original. If you keep it, you can run everything again later with better cleaning, better prompts or a better model. Cleaning can also introduce errors, and without the raw text you cannot check or fix them.
+8. **D.** Idempotent means: doing it twice gives the same result as doing it once. Message queues can deliver a message more than once, and failed work is retried. Without idempotency, one meeting could get two summaries or two sets of action items.
 </details>

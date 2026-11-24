@@ -251,25 +251,61 @@ Follow the release notes of what you use, test new models on your own evals, bui
 ## Check yourself
 
 1. Why is fine-tuning the wrong way to give a model knowledge of your meetings?
+   - A. Fine-tuning is not allowed for meeting data.
+   - B. Fine-tuned models are always slower.
+   - C. Tuned models do not recall documents reliably, cannot cite them, cannot forget a deleted one, and need retraining as data changes.
+   - D. Fine-tuning only works for images.
 2. In what order do you try the options before fine-tuning?
+   - A. Fine-tuning, then RAG, then a better prompt.
+   - B. A stronger model, then fine-tuning, then examples.
+   - C. RAG, then fine-tuning, then a better prompt.
+   - D. Better prompt, few-shot examples, RAG or better context, a stronger model, then fine-tuning.
 3. What does LoRA train, and why is that cheaper?
+   - A. Only a small adapter of extra weights while the base model stays frozen; far fewer weights to train and store.
+   - B. All weights, but with less data.
+   - C. Only the tokenizer.
+   - D. Only the system prompt.
 4. What is distillation?
+   - A. Removing unused weights from a model.
+   - B. Training a small model on the outputs of a large one so it does one task almost as well, more cheaply.
+   - C. Storing weights with fewer bits.
+   - D. Shortening long prompts.
 5. Which steps of the assistant can a small model handle?
+   - A. Writing the final long answer.
+   - B. Deep reasoning over many documents.
+   - C. Routing, turning words into filter values, query rewriting and simple classification.
+   - D. None; always use the largest model.
 6. Why do images increase cost?
-7. Name three ways to design for a system that is sometimes wrong.
+   - A. Images need a separate API key.
+   - B. Images are stored forever.
+   - C. Images are sent twice.
+   - D. Images are turned into tokens, and larger images mean more tokens.
+7. Which list contains ways to design for a system that is sometimes wrong?
+   - A. Hide the sources, lock the output and sound certain.
+   - B. Show sources, make output editable and state uncertainty.
+   - C. Remove the undo button, send results automatically and skip review.
+   - D. Promise 100% accuracy, hide errors and block feedback.
 8. Which metric shows product value better than "number of questions asked"?
+   - A. Number of tokens used.
+   - B. Number of registered users.
+   - C. Weekly return rate, time saved, or share of answers accepted without correction.
+   - D. Number of features.
 9. What decides whether you move to a new model?
+   - A. Its rank on public leaderboards.
+   - B. Its score on your own eval set, together with cost and speed.
+   - C. How new it is.
+   - D. What other companies use.
 
 <details>
 <summary>Answers</summary>
 
-1. Tuned models do not recall documents reliably, cannot cite them, cannot forget a deleted one, and need retraining as data changes. Use retrieval.
-2. Better prompt, few-shot examples, RAG or better context, a stronger model, then fine-tuning.
-3. Only a small adapter of extra weights while the base model stays frozen; far fewer weights to train and store.
-4. Training a small model on the outputs of a large one so it does one task almost as well, more cheaply.
-5. Routing, turning words into filter values, query rewriting, simple classification.
-6. Images are turned into tokens, and larger images mean more tokens.
-7. Show sources, make output editable, state uncertainty, keep people in control, make undo easy.
-8. Weekly return rate, time saved, or share of answers accepted without correction.
-9. Its score on your own eval set, together with cost and speed.
+1. **C.** Fine-tuning changes how a model behaves; it is a poor store for facts. A tuned model does not recall documents reliably, cannot say where a fact came from, cannot forget a deleted meeting, and must be retrained when data changes. Use retrieval for knowledge.
+2. **D.** Go from cheap and fast to expensive and slow: a better prompt, then few-shot examples, then RAG or better context, then a stronger model. Fine-tuning comes last, because it costs the most time and is the hardest to change.
+3. **A.** LoRA leaves the base model's weights unchanged (frozen) and trains only a small set of extra weights, called an adapter. There are far fewer weights to train and to store, so it needs much less computing power.
+4. **B.** In distillation, a large model produces answers for one task, and a small model is trained on these answers. The small model then does that one task almost as well, at a much lower cost. Storing weights with fewer bits is quantization, a different technique.
+5. **C.** Small models are good at short, simple and well-defined steps: choosing a route, turning words into filter values, rewriting a query and simple classification. Keep the large model for the hard steps.
+6. **D.** The model cannot read pixels directly. An image is turned into tokens, and a larger image becomes more tokens. You pay for these like for text tokens.
+7. **B.** Since the system will sometimes be wrong, help the user notice and fix it: show the sources, let them edit the output, and say when the system is unsure. Keeping people in control and making undo easy belong on the list too.
+8. **C.** Many questions can also mean the first answers were bad. Value shows when people come back every week, save time, or accept answers without correcting them.
+9. **B.** Public leaderboards measure other people's tasks. Only your own eval set shows how the model does on your task. Compare that score together with cost and speed.
 </details>

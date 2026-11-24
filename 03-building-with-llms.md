@@ -375,23 +375,55 @@ Expect slow and failed calls. Retry the right errors with backoff, set real time
 ## Check yourself
 
 1. Which two fields of an API response should you always look at, besides the content?
+   - A. The model name and the request id.
+   - B. The stop reason and the token usage.
+   - C. The temperature and top-p.
+   - D. The date and the server region.
 2. What is quantization, and what do you trade?
+   - A. Splitting text into tokens; you trade speed for accuracy.
+   - B. Removing layers from the model; you trade memory for speed.
+   - C. Storing weights with fewer bits; the model gets smaller and faster for a small loss of quality.
+   - D. Training on less data; you trade knowledge for cheaper training.
 3. A local model ignores the start of a long transcript. What is the likely cause?
+   - A. The temperature is too high.
+   - B. The model cannot read transcripts.
+   - C. The system prompt is too short.
+   - D. The context window setting is too small and the input was cut silently.
 4. What is an advisor in Spring AI?
+   - A. A wrapper around the model call that can change the request and response, like a filter.
+   - B. A second model that checks the answers.
+   - C. A tool that the model can call.
+   - D. A document that explains best practices.
 5. Why should a schema allow null and empty lists?
+   - A. It makes the JSON smaller.
+   - B. Otherwise the model invents values to fill required fields.
+   - C. Null values are faster to parse.
+   - D. A schema without null is not valid.
 6. In tool calling, who executes the function?
-7. Name three memory strategies and one weakness of each.
+   - A. The model.
+   - B. The provider's server.
+   - C. Your application; the model only asks for the call.
+   - D. The user's browser.
+7. Which line matches a memory strategy with its real weakness?
+   - A. Full history: forgets early facts.
+   - B. Sliding window: forgets early facts.
+   - C. Summarising: grows without bound.
+   - D. Long-term store: nothing to build.
 8. Which HTTP errors do you retry, and which not?
+   - A. Retry all errors.
+   - B. Retry 400 and 401; never retry 429.
+   - C. Never retry any error.
+   - D. Retry 429 and 5xx with backoff; do not retry 400 or 401.
 
 <details>
 <summary>Answers</summary>
 
-1. The stop reason and the token usage.
-2. Storing weights with fewer bits; smaller and faster for a small loss of quality.
-3. The context window setting is too small and the input was cut silently.
-4. A wrapper around the model call that can change the request and response, like a filter (memory, RAG, logging).
-5. Otherwise the model invents values to fill required fields.
-6. Your application. The model only asks for the call.
-7. Full history (grows without bound), sliding window (forgets early facts), summarising (loses detail), long-term store (more to build).
-8. Retry 429 and 5xx with backoff. Do not retry 400 or 401.
+1. **B.** The stop reason tells you whether the answer finished normally or was cut off, for example at max tokens. The token usage tells you what the call cost. Without them you can miss a half answer or a rising bill.
+2. **C.** Quantization stores each weight with fewer bits. The model needs less memory and runs faster, and you lose a little quality. This is why large models can run on a laptop.
+3. **D.** Local runtimes often have a small default context window. If the input is longer, the start is cut off without any error, so the model never sees it. Check and raise the context window setting.
+4. **A.** An advisor wraps the model call. It can change the request before it is sent and the response after it comes back, like a filter. Memory, RAG and logging are added this way.
+5. **B.** If a field is required but the text has no value for it, the model must still write something, so it invents a value. Allowing null and empty lists gives the model an honest way to say "nothing found".
+6. **C.** The model only writes a request: which function to call and with which arguments. Your application runs the function and sends the result back to the model. This is why your code can check and limit every call.
+7. **B.** A sliding window keeps only the latest messages, so it forgets early facts. Full history grows without bound. Summarising loses detail. A long-term store keeps more, but it is more to build.
+8. **D.** 429 (too many requests) and 5xx (server problems) are temporary, so waiting and trying again can work. Backoff means waiting longer after each failed try. 400 (bad request) and 401 (not authorised) fail the same way every time, until you fix the request or the key.
 </details>

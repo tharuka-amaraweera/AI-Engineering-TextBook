@@ -282,26 +282,62 @@ Put the tenant filter into every query, cache key and memory key. Enforce isolat
 
 ## Check yourself
 
-1. Which fields would you log for each model call? Name six.
+1. Which list contains only fields you would log for each model call?
+   - A. Trace id, prompt version, model, input, output and token counts.
+   - B. The model's weights, the training data and the API key.
+   - C. Only the answer text.
+   - D. The user's password, the API key and the answer.
 2. Why is tracing important for RAG and agents?
-3. Name four ways to reduce cost.
+   - A. It makes calls cheaper.
+   - B. It hides errors from users.
+   - C. It replaces evals.
+   - D. One request has many steps; a trace shows which step was slow or wrong.
+3. Which list contains only ways to reduce cost?
+   - A. A bigger model, longer answers and more retries.
+   - B. A smaller model for easy steps, fewer input tokens, shorter output and prompt caching.
+   - C. A higher temperature, more examples and a longer system prompt.
+   - D. Turning off logging, removing evals and skipping tests.
 4. What breaks prompt caching?
+   - A. Using the same system prompt every time.
+   - B. A long prompt.
+   - C. Any change near the start of the prompt, such as a timestamp, and too much time between calls.
+   - D. A low temperature.
 5. What are the three places for guardrails?
+   - A. Input, output and actions (tools).
+   - B. Prompt, model and database.
+   - C. Frontend, backend and network.
+   - D. Training, testing and deployment.
 6. What must be deleted when a meeting is deleted?
+   - A. Only the raw transcript.
+   - B. The transcript and the summary; embeddings are anonymous and can stay.
+   - C. Nothing, if the data is encrypted.
+   - D. Raw transcript, chunks and embeddings, extracted items and summaries, cached answers, logs containing the text, and later the backups.
 7. Which questions do you ask before sending real data to a hosted model?
+   - A. Is the model fast? Is it cheap? Is it popular?
+   - B. Is there a DPA? Where is data processed? Is it used for training? How long is it kept?
+   - C. Which language is the SDK written in? Is there a free tier?
+   - D. How many parameters does the model have?
 8. What usually limits the throughput of an AI service?
+   - A. Your CPU.
+   - B. Your disk space.
+   - C. The provider's rate limits, not your CPU.
+   - D. The size of the system prompt.
 9. Why is "only use team A's data" in the prompt not isolation?
+   - A. The model cannot read team names.
+   - B. A prompt is a request the model can fail to follow; isolation needs a filter in the query and the database.
+   - C. Prompts are too short for rules.
+   - D. It is isolation, as long as the prompt is clear.
 
 <details>
 <summary>Answers</summary>
 
-1. Trace id, prompt version, model, input, output, token counts, latency, stop reason, errors, user or tenant.
-2. One request has many steps; a trace shows which step was slow or wrong.
-3. Smaller model for easy steps, fewer input tokens, shorter output, prompt caching, response caching, batch processing, storing results.
-4. Any change near the start of the prompt, such as a timestamp, and too much time between calls.
-5. Input, output and actions (tools).
-6. Raw transcript, chunks and embeddings, extracted items and summaries, cached answers, logs containing the text, and later the backups.
-7. Is there a DPA? Where is data processed? Is it used for training? How long is it kept? Does my employer allow it?
-8. The provider's rate limits, not your CPU.
-9. A prompt is a request the model can fail to follow. Isolation needs a filter in the query and the database.
+1. **A.** To understand a call later you need: the trace id, the prompt version, the model, the input, the output and the token counts. Latency, stop reason, errors and the user or tenant are useful too. Secrets such as API keys and passwords never go into logs.
+2. **D.** One user request becomes many steps: search, re-ranking, several model calls, tool calls. A trace shows all steps of one request together, so you can see which step was slow or wrong.
+3. **B.** You pay per token and per model size. So use a smaller model for easy steps, send fewer input tokens, ask for shorter output, and cache what repeats. Response caching, batch processing and storing results help too.
+4. **C.** The cache matches the prompt from its start. If something near the start changes, for example a timestamp, everything after it must be processed again. Caches also expire after a short time. Put stable text first and changing text last.
+5. **A.** Check what goes into the model (input), what comes out (output), and what the system is about to do (actions, meaning tool calls). Each place catches different problems.
+6. **D.** The meeting's content lives in many places: the raw transcript, the chunks and their embeddings, extracted items and summaries, cached answers, logs that contain the text, and backups. Embeddings are made from personal data, so they must go too.
+7. **B.** These questions are about what happens to the data: is there a data processing agreement (DPA), where is the data processed, is it used for training, and how long is it kept? One more: does your employer allow it?
+8. **C.** Your service mostly waits for the model provider, so your own CPU has little to do. The limit is how many requests and tokens per minute the provider allows.
+9. **B.** A prompt is only a request. The model can fail to follow it, and an attacker can talk it out of it. Real isolation means team B's data never reaches the model: the filter is in the query and the database.
 </details>
