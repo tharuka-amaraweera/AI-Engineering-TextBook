@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { joinNotes } from './richnotes.js';
 
 // Progress, notes and theme live in the browser's local storage.
 // Optionally, notes and progress are also synced to one secret GitHub Gist, so
@@ -119,7 +120,7 @@ export function useStore() {
           // First connection of this browser: never lose a note from either side.
           const r = getAt(merged, p);
           if (!v) continue;
-          if (r && r !== v) v = r + '\n\n' + v;
+          if (r && r !== v) v = joinNotes(r, v);
         }
         setAt(merged, p, v);
         // A concept is either understood or marked to revise again, never both.

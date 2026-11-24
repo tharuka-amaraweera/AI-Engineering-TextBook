@@ -158,7 +158,7 @@ h2.sec { font-family: var(--f-read); font-size: 22px; margin: 28px 0 10px; }
 
 /* notes, exercises, quiz, glossary */
 .notes { margin-top: 26px; display: grid; gap: 6px; }
-.notes label { font-family: var(--f-mono); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
+.notes label, .notes-label { font-family: var(--f-mono); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
 .notes textarea { width: 100%; min-height: 84px; resize: vertical; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .exs, .quiz { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; counter-reset: item; }
 .exs > li, .quiz > li { counter-increment: item; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
@@ -168,6 +168,41 @@ h2.sec { font-family: var(--f-read); font-size: 22px; margin: 28px 0 10px; }
 .ex-head input { width: 20px; height: 20px; margin-top: 5px; accent-color: var(--good); }
 .exs .md p, .quiz .md p { margin: 0; }
 .exs .notes { margin-top: 10px; }
+
+/* note editor */
+.notes-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.btn.expand { padding: 3px 10px; font-size: 12.5px; }
+.note-rich { font-family: var(--f-ui); font-size: 15.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.note-rich ul, .note-rich ol { margin: 4px 0; padding-left: 26px; }
+.note-rich [style*="background-color: rgb(255, 232, 115)"] { background-color: var(--hl) !important; color: var(--hl-ink); border-radius: 3px; }
+.note-rich [style*="color: rgb(191, 58, 45)"] { color: var(--bad) !important; }
+.note-rich [style*="color: rgb(27, 127, 80)"] { color: var(--good) !important; }
+.note-rich [style*="color: rgb(36, 71, 214)"] { color: var(--accent) !important; }
+.note-rich [style*="color: rgb(168, 98, 0)"] { color: var(--warn) !important; }
+.note-rich [style*="color: rgb(116, 64, 194)"] { color: var(--vio) !important; }
+.note-view { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 84px; cursor: pointer; }
+.note-view:hover { border-color: var(--ink-2); }
+.exs .note-view { min-height: 54px; background: var(--sunk); }
+.note-dlg { width: min(900px, 94vw); height: min(80vh, 760px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font-family: var(--f-ui); }
+.note-dlg[open] { display: flex; flex-direction: column; }
+.note-dlg::backdrop { background: rgb(0 0 0 / .55); }
+.note-dlg header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.note-dlg > .muted { margin: 0; padding: 8px 16px 12px; font-size: 12.5px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+.tool { min-width: 34px; height: 32px; padding: 0 9px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 14px; }
+.tool:hover { border-color: var(--ink-2); }
+.tool.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.hl-demo { background: var(--hl); color: var(--hl-ink); border-radius: 3px; padding: 1px 5px; }
+.swatch i { font-style: normal; font-weight: 700; }
+.swatch[style*="rgb(191, 58, 45)"] { color: var(--bad) !important; }
+.swatch[style*="rgb(27, 127, 80)"] { color: var(--good) !important; }
+.swatch[style*="rgb(36, 71, 214)"] { color: var(--accent) !important; }
+.swatch[style*="rgb(168, 98, 0)"] { color: var(--warn) !important; }
+.swatch[style*="rgb(116, 64, 194)"] { color: var(--vio) !important; }
+.note-edit { flex: 1; overflow-y: auto; padding: 16px; outline: none; font-size: 16.5px; }
+.note-edit:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+@media (max-width: 700px) { .note-dlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; } }
 .exs .notes textarea { min-height: 54px; background: var(--sunk); }
 .quiz .q { font-weight: 600; margin-bottom: 10px; }
 .quiz .q p::before { content: counter(item) ". "; color: var(--ink-2); font-family: var(--f-mono); font-size: .8em; }

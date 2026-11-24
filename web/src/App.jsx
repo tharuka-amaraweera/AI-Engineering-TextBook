@@ -3,6 +3,7 @@ import Md from './Markdown.jsx';
 import { chapters, concepts, glossary, pages, readme, stories } from './content.js';
 import { visuals } from './visuals/index.js';
 import { useStore } from './sync.js';
+import { COLORS, HIGHLIGHT, MARK, cleanHtml, hasText, isRich, noteToHtml } from './richnotes.js';
 
 function useHashPath() {
   const read = () => decodeURI(location.hash.slice(1)) || '/';
@@ -34,16 +35,102 @@ function Progress({ value, max }) {
   );
 }
 
+// The large note editor: a dialog with basic text formatting.
+// It saves while you type, like the small note box.
+function NoteEditor({ title, note, onSave, onClose }) {
+  const dlg = useRef(null);
+  const ed = useRef(null);
+  const [on, setOn] = useState({});
+
+  useEffect(() => {
+    ed.current.innerHTML = noteToHtml(note);
+    dlg.current.showModal();
+    ed.current.focus();
+    // Put the cursor at the end of the note.
+    const sel = getSelection();
+    sel.selectAllChildren(ed.current);
+    sel.collapseToEnd();
+    refresh();
+  }, []);
+
+  const refresh = () => {
+    const state = k => { try { return document.queryCommandState(k); } catch { return false; } };
+    // Is the cursor inside highlighted text? (The shown colour depends on the theme, so check the stored one.)
+    let hl = false;
+    for (let n = getSelection().anchorNode; n && n !== ed.current; n = n.parentNode) {
+      if (n.style?.backgroundColor === HIGHLIGHT) { hl = true; break; }
+    }
+    setOn({ bold: state('bold'), italic: state('italic'), underline: state('underline'), ul: state('insertUnorderedList'), ol: state('insertOrderedList'), hl });
+  };
+  const save = () => {
+    const html = cleanHtml(ed.current.innerHTML);
+    onSave(hasText(html) ? MARK + html : '');
+  };
+  const run = (cmd, value) => {
+    ed.current.focus();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(cmd, false, value);
+    save();
+    refresh();
+  };
+  // mousedown, not click: the text selection must stay where it is.
+  const tool = (label, name, act, active) => (
+    <button key={name} type="button" className={'tool' + (active ? ' on' : '')} aria-label={name} title={name} aria-pressed={active}
+      onMouseDown={e => { e.preventDefault(); act(); }}>{label}</button>
+  );
+
+  return (
+    <dialog ref={dlg} className="note-dlg" aria-label={'Note editor: ' + title} onClose={onClose}>
+      <header>
+        <b>{title}</b>
+        <button type="button" className="btn primary" onClick={() => dlg.current.close()}>Done</button>
+      </header>
+      <div className="toolbar" role="toolbar" aria-label="Text formatting">
+        {tool(<b>B</b>, 'Bold', () => run('bold'), on.bold)}
+        {tool(<i>I</i>, 'Italic', () => run('italic'), on.italic)}
+        {tool(<u>U</u>, 'Underline', () => run('underline'), on.underline)}
+        {tool(<span className="hl-demo">Highlight</span>, 'Highlight', () => run('hiliteColor', on.hl ? 'transparent' : HIGHLIGHT), on.hl)}
+        <span className="sep" />
+        {COLORS.map(c => tool(<span className="swatch" style={{ color: c.value }}><i>A</i></span>, c.name + ' text', () => run('foreColor', c.value), false))}
+        {tool('A', 'Normal text colour', () => run('foreColor', getComputedStyle(ed.current).color), false)}
+        <span className="sep" />
+        {tool('• List', 'Bullet list', () => run('insertUnorderedList'), on.ul)}
+        {tool('1. List', 'Numbered list', () => run('insertOrderedList'), on.ol)}
+        <span className="sep" />
+        {tool('Clear', 'Remove formatting', () => run('removeFormat'), false)}
+      </div>
+      <div ref={ed} className="note-rich note-edit" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Note text"
+        onInput={save} onKeyUp={refresh} onMouseUp={refresh} onFocus={refresh}
+        onPaste={e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); }} />
+      <p className="muted">Saved while you type. Select text, then pick a format. Press Esc or Done to close.</p>
+    </dialog>
+  );
+}
+
 function Notes({ id, s, update, label = 'My notes' }) {
+  const [open, setOpen] = useState(false);
+  const note = s.notes?.[id] || '';
+  const rich = isRich(note);
+  const save = v => update(d => { d.notes = d.notes || {}; d.notes[id] = v; });
   return (
     <div className="notes">
-      <label htmlFor={'notes-' + id}>{label}</label>
-      <textarea
-        id={'notes-' + id}
-        value={s.notes?.[id] || ''}
-        placeholder="Write the idea in your own words, or paste a link to your work. Saved in this browser."
-        onChange={e => update(d => { d.notes = d.notes || {}; d.notes[id] = e.target.value; })}
-      />
+      <div className="notes-head">
+        {rich ? <span className="notes-label">{label}</span> : <label htmlFor={'notes-' + id}>{label}</label>}
+        <button type="button" className="btn expand" onClick={() => setOpen(true)}>Expand</button>
+      </div>
+      {rich ? (
+        <div className="note-rich note-view" id={'notes-' + id} tabIndex={0} role="button" aria-label={label + '. Open the note editor'} title="Double-click to edit"
+          onDoubleClick={() => setOpen(true)} onKeyDown={e => { if (e.key === 'Enter') setOpen(true); }}
+          dangerouslySetInnerHTML={{ __html: noteToHtml(note) }} />
+      ) : (
+        <textarea
+          id={'notes-' + id}
+          value={note}
+          placeholder="Write the idea in your own words, or paste a link to your work. Saved in this browser."
+          onChange={e => save(e.target.value)}
+        />
+      )}
+      {open && <NoteEditor title={label} note={note} onSave={save} onClose={() => setOpen(false)} />}
     </div>
   );
 }
@@ -416,7 +503,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = e => {
-      if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) || e.target.isContentEditable || document.querySelector('dialog[open]')) return;
       if (document.querySelector('dialog[open]')) return; // do not turn the page behind an open example story
       if (e.key === 'ArrowRight' && next) location.hash = next.path;
       if (e.key === 'ArrowLeft' && prev) location.hash = prev.path;
