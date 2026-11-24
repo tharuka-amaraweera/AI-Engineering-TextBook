@@ -1,5 +1,7 @@
 // Notes are plain text by default. A note edited in the note editor is stored as
 // HTML with this marker in front, so old plain notes keep working.
+import { IMAGE_ID } from './images.js';
+
 export const MARK = '<!--rich-->';
 export const isRich = note => typeof note === 'string' && note.startsWith(MARK);
 
@@ -22,6 +24,14 @@ const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'SVG', 'MA
 function cleanNode(node) {
   for (const el of [...node.children]) {
     if (DROP.has(el.tagName.toUpperCase())) { el.remove(); continue; }
+    if (el.tagName.toUpperCase() === 'IMG') {
+      // A picture is stored as an id only. The picture data never sits in the note.
+      const id = el.getAttribute('data-img') || '';
+      if (!IMAGE_ID.test(id)) { el.remove(); continue; }
+      for (const a of [...el.attributes]) el.removeAttribute(a.name);
+      el.setAttribute('data-img', id);
+      continue;
+    }
     cleanNode(el);
     const tag = el.tagName.toUpperCase();
     const st = el.style;
@@ -66,7 +76,7 @@ export function cleanHtml(html) {
 
 export const hasText = html => {
   const doc = new DOMParser().parseFromString('<!doctype html><body>' + html, 'text/html');
-  return doc.body.textContent.trim() !== '';
+  return doc.body.textContent.trim() !== '' || !!doc.body.querySelector('img[data-img]');
 };
 
 export const textToHtml = text => String(text || '')

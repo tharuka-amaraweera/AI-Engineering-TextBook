@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Md from './Markdown.jsx';
 import { chapters, concepts, glossary, pages, readme, stories } from './content.js';
 import { visuals } from './visuals/index.js';
-import { useStore } from './sync.js';
+import { queueImageUpload, useStore } from './sync.js';
+import { addImage, hydrateImages } from './images.js';
 import { COLORS, HIGHLIGHT, MARK, cleanHtml, hasText, isRich, noteToHtml } from './richnotes.js';
 
 function useHashPath() {
@@ -40,10 +41,13 @@ function Progress({ value, max }) {
 function NoteEditor({ title, note, onSave, onClose }) {
   const dlg = useRef(null);
   const ed = useRef(null);
+  const pick = useRef(null);
   const [on, setOn] = useState({});
+  const [msg, setMsg] = useState('');
 
   useEffect(() => {
     ed.current.innerHTML = noteToHtml(note);
+    hydrateImages(ed.current);
     dlg.current.showModal();
     ed.current.focus();
     // Put the cursor at the end of the note.
@@ -63,8 +67,28 @@ function NoteEditor({ title, note, onSave, onClose }) {
     setOn({ bold: state('bold'), italic: state('italic'), underline: state('underline'), ul: state('insertUnorderedList'), ol: state('insertOrderedList'), hl });
   };
   const save = () => {
-    const html = cleanHtml(ed.current.innerHTML);
+    // The note keeps only the id of each picture, so drop the picture data first.
+    const copy = ed.current.cloneNode(true);
+    copy.querySelectorAll('img').forEach(img => img.removeAttribute('src'));
+    const html = cleanHtml(copy.innerHTML);
     onSave(hasText(html) ? MARK + html : '');
+  };
+  // Puts pictures into the note at the cursor.
+  const insertImages = async files => {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        setMsg('Adding image…');
+        const { id, url } = await addImage(file);
+        queueImageUpload(id);
+        ed.current.focus();
+        document.execCommand('insertHTML', false, `<img data-img="${id}" src="${url}" alt="Image in note">`);
+        setMsg('');
+        save();
+      } catch (e) {
+        setMsg(e?.message || 'This image could not be added.');
+      }
+    }
   };
   const run = (cmd, value) => {
     ed.current.focus();
@@ -98,19 +122,29 @@ function NoteEditor({ title, note, onSave, onClose }) {
         {tool('1. List', 'Numbered list', () => run('insertOrderedList'), on.ol)}
         <span className="sep" />
         {tool('Clear', 'Remove formatting', () => run('removeFormat'), false)}
+        <span className="sep" />
+        {tool('Image', 'Add an image', () => pick.current.click(), false)}
+        <input ref={pick} type="file" accept="image/*" multiple hidden onChange={e => { insertImages([...e.target.files]); e.target.value = ''; }} />
       </div>
       <div ref={ed} className="note-rich note-edit" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Note text"
         onInput={save} onKeyUp={refresh} onMouseUp={refresh} onFocus={refresh}
-        onPaste={e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); }} />
-      <p className="muted">Saved while you type. Select text, then pick a format. Press Esc or Done to close.</p>
+        onPaste={e => {
+          e.preventDefault();
+          const images = [...e.clipboardData.files].filter(f => f.type.startsWith('image/'));
+          if (images.length) insertImages(images);
+          else document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+        }} />
+      <p className="muted" role="status">{msg || 'Saved while you type. Select text, then pick a format. Paste a screenshot to add an image. Press Esc or Done to close.'}</p>
     </dialog>
   );
 }
 
 function Notes({ id, s, update, label = 'My notes' }) {
   const [open, setOpen] = useState(false);
+  const view = useRef(null);
   const note = s.notes?.[id] || '';
   const rich = isRich(note);
+  useEffect(() => { hydrateImages(view.current); }, [note]);
   const save = v => update(d => { d.notes = d.notes || {}; d.notes[id] = v; });
   return (
     <div className="notes">
@@ -119,7 +153,7 @@ function Notes({ id, s, update, label = 'My notes' }) {
         <button type="button" className="btn expand" onClick={() => setOpen(true)}>Expand</button>
       </div>
       {rich ? (
-        <div className="note-rich note-view" id={'notes-' + id} tabIndex={0} role="button" aria-label={label + '. Open the note editor'} title="Double-click to edit"
+        <div ref={view} className="note-rich note-view" id={'notes-' + id} tabIndex={0} role="button" aria-label={label + '. Open the note editor'} title="Double-click to edit"
           onDoubleClick={() => setOpen(true)} onKeyDown={e => { if (e.key === 'Enter') setOpen(true); }}
           dangerouslySetInnerHTML={{ __html: noteToHtml(note) }} />
       ) : (

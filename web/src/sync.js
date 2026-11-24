@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { joinNotes } from './richnotes.js';
+import { IMAGE_ID, IMAGE_URL, allImageIds, localImage, putImage, setRemoteLoader } from './images.js';
 
 // Progress, notes and theme live in the browser's local storage.
 // Optionally, notes and progress are also synced to one secret GitHub Gist, so
@@ -7,8 +8,9 @@ import { joinNotes } from './richnotes.js';
 // except in requests to api.github.com.
 
 const KEY = 'ai-workbook-v1';
-const SYNC_KEY = 'ai-workbook-sync'; // { token, gistId, dirty: [paths], first }
+const SYNC_KEY = 'ai-workbook-sync'; // { token, gistId, dirty: [paths], first, imgGistId, imgPending: [ids] }
 const FILE = 'ai-workbook-notes.json';
+const IMG_FILE = 'ai-workbook-images.json'; // marks the second Gist, which holds the pictures
 const API = 'https://api.github.com';
 const SYNCED = ['notes', 'read', 'revise', 'ex', 'quiz']; // theme stays per browser
 
@@ -52,10 +54,10 @@ async function gh(token, path, method = 'GET', body) {
   return res.json();
 }
 
-async function findGist(token) {
+async function findGist(token, file = FILE) {
   for (let page = 1; page <= 10; page++) {
     const list = await gh(token, `/gists?per_page=100&page=${page}`);
-    const hit = list.find(g => g.files && g.files[FILE]);
+    const hit = list.find(g => g.files && g.files[file]);
     if (hit) return hit.id;
     if (list.length < 100) break;
   }
@@ -78,10 +80,66 @@ async function readRemote(token, id) {
 
 const fileBody = data => ({ files: { [FILE]: { content: JSON.stringify({ version: 1, updatedAt: new Date().toISOString(), ...data }, null, 2) } } });
 
+// The sync settings of this browser. Kept outside the hook so the image
+// functions below can use them too.
+const cfg = { current: readJson(SYNC_KEY) };
+const saveCfg = patch => { cfg.current = { ...cfg.current, ...patch }; writeJson(SYNC_KEY, cfg.current); };
+
+/* ---------- pictures in notes ---------- */
+
+// Called when a picture is added to a note. It is uploaded with the next sync.
+export function queueImageUpload(id) {
+  if (cfg.current.token) saveCfg({ imgPending: [...new Set([...(cfg.current.imgPending || []), id])] });
+}
+
+async function uploadImages(token) {
+  const pending = cfg.current.imgPending || [];
+  if (!pending.length) return;
+  let gid = cfg.current.imgGistId || await findGist(token, IMG_FILE);
+  // A few pictures per request keeps each request small.
+  for (let i = 0; i < pending.length; i += 3) {
+    const batch = pending.slice(i, i + 3);
+    const files = {};
+    for (const id of batch) {
+      const url = await localImage(id);
+      if (url) files[`img-${id}.txt`] = { content: url };
+    }
+    if (Object.keys(files).length) {
+      if (!gid) gid = (await gh(token, '/gists', 'POST', { description: 'AI Engineering workbook: pictures in my notes', public: false, files: { [IMG_FILE]: { content: '{"version":1}' }, ...files } })).id;
+      else await gh(token, '/gists/' + gid, 'PATCH', { files });
+    }
+    saveCfg({ imgGistId: gid, imgPending: (cfg.current.imgPending || []).filter(id => !batch.includes(id)) });
+  }
+}
+
+// Downloads the pictures of the Gist into this browser. Used when a note shows
+// a picture that was added in another browser.
+let loading = null;
+let lastMiss = 0;
+function downloadImages() {
+  const { token } = cfg.current;
+  if (!token || Date.now() - lastMiss < 60000) return Promise.resolve();
+  loading = loading || (async () => {
+    try {
+      const gid = cfg.current.imgGistId || await findGist(token, IMG_FILE);
+      if (!gid) return;
+      saveCfg({ imgGistId: gid });
+      const g = await gh(token, '/gists/' + gid);
+      for (const [name, f] of Object.entries(g.files || {})) {
+        const m = /^img-([a-z0-9]+)\.txt$/.exec(name);
+        if (!m || !IMAGE_ID.test(m[1]) || await localImage(m[1])) continue;
+        const text = f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
+        if (IMAGE_URL.test(text)) await putImage(m[1], text);
+      }
+    } finally { loading = null; lastMiss = Date.now(); }
+  })();
+  return loading;
+}
+setRemoteLoader(downloadImages);
+
 export function useStore() {
   const [state, setState] = useState(() => readJson(KEY));
   const stateRef = useRef(state);
-  const cfg = useRef(readJson(SYNC_KEY));
   const [status, setStatus] = useState(() => (cfg.current.token ? { kind: 'idle' } : { kind: 'off' }));
   const busy = useRef(false);
   const again = useRef(false);
@@ -89,7 +147,6 @@ export function useStore() {
   const run = useRef(() => {});
 
   const commit = next => { stateRef.current = next; writeJson(KEY, next); setState(next); };
-  const saveCfg = patch => { cfg.current = { ...cfg.current, ...patch }; writeJson(SYNC_KEY, cfg.current); };
   const schedule = (ms = 1500) => { clearTimeout(timer.current); timer.current = setTimeout(() => run.current(), ms); };
 
   run.current = async () => {
@@ -106,6 +163,8 @@ export function useStore() {
         try { remote = await readRemote(token, id); }
         catch (e) { if (e.status === 404 && cfg.current.gistId) id = null; else throw e; }
       }
+      // Pictures go up first, so a note never points to a picture that is not there yet.
+      await uploadImages(token);
       const sent = clone(stateRef.current);
       const first = !!cfg.current.first;
       // No Gist yet: upload everything. Otherwise only what changed in this browser.
@@ -182,7 +241,8 @@ export function useStore() {
     connect: token => {
       cfg.current = {};
       saveCfg({ token: token.trim(), gistId: null, dirty: allPaths(stateRef.current), first: true });
-      run.current();
+      // Pictures already in this browser are uploaded too.
+      allImageIds().then(ids => { saveCfg({ imgPending: ids }); lastMiss = 0; run.current(); });
     },
     disconnect: () => {
       clearTimeout(timer.current);
